@@ -106,10 +106,26 @@ def create_order():
                 db.session.commit()
 
                 return {}
-            return 'Quadrocoapter is busy or ', status.HTTP_403_FORBIDDEN
+            return 'Quadrocoapter is busy or way is too long', status.HTTP_403_FORBIDDEN
         return 'Some data is missing', status.HTTP_400_BAD_REQUEST
     return 'Some data is missing', status.HTTP_400_BAD_REQUEST
-    
+
+@app.route('/api/order/changestatus', methods = ['POST'])
+def change_status():
+    requireds = ('id', 'status')
+    if request.get_json() is not None:
+        if check_data(request.get_json(), requireds) is True:
+            orders = models.Order.query.filter(models.Order.id == request.get_json()['id']).all()
+            if len(orders) > 0:
+                order = orders[0]
+                order.status = request.get_json()['status']
+                db.session.commit()
+
+                return {}
+            return 'Order is not found', status.HTTP_400_BAD_REQUEST
+        return 'Some params are missing', status.HTTP_400_BAD_REQUEST
+    return 'Some params are missing', status.HTTP_400_BAD_REQUEST
+
 app.secret_key = os.urandom(24)
 app.run(host = '0.0.0.0', port = '80', debug = True)
 #print(eval_time(56.355642, 37.526208, 56.355147, 37.530657))
