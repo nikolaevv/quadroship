@@ -72,7 +72,7 @@ def get_available():
 def get_active_order():
     if request.args.get('vk_id', None) is not None:
         vk_id = request.args.get('vk_id')
-        orders = queryset_to_list(models.Order.query.filter(models.Order.sender == vk_id).filter(models.Order.status != 0).all())
+        orders = queryset_to_list(models.Order.query.filter((models.Order.sender == vk_id) | (models.Order.receiver == vk_id)).filter(models.Order.status != 0).all())
 
         if len(orders) > 0:
             print(orders[0])
