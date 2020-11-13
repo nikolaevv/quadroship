@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from app import models, app, db
 from flask_api import status
 import os
-from config import speed
+from config import speed, max_flight_time
 import numpy as np
 import base64
 import datetime
@@ -16,6 +16,20 @@ from math import pi, sin, cos, asin, sqrt, ceil
 
 earth_r = 6371
 # Усредённное значение радиуса Земли
+
+def convert_to_radians(degrees):
+    return degrees * (pi / 180)
+
+def eval_time(lat1, lon1, lat2, lon2):
+    lat1, lon1 = convert_to_radians(lat1), convert_to_radians(lon1)
+    lat2, lon2 = convert_to_radians(lat2), convert_to_radians(lon2)
+    # Конвертация в радианы
+
+    d = 2 * earth_r * asin(sqrt(sin((lat2 - lat1) / 2) ** 2 + cos(lat1) * cos(lat2) * (sin((lon2 - lon1) / 2) ** 2 )))
+    t = ceil(d / speed * 60)
+    # Расчёт времени доставки от A в B
+
+    return [d, t]
 
 def check_data(data, requireds):
     if type(data) == dict:
@@ -36,15 +50,23 @@ def queryset_to_list(queryset):
         flat_list.append(q_dict)
     return flat_list
 
-def check_available(lat1, lon1, lat2, lon2):
-    lat1, lon1 = convert_to_radians(lat1), convert_to_radians(lon1)
-    lat2, lon2 = convert_to_radians(lat2), convert_to_radians(lon2)
-    # Конвертация в радианы
+def get_queadro_coords():
+    # Заглушка
+    return 56.353263, 37.527939
 
-    d = 2 * earth_r * asin(sqrt(sin((lat2 - lat1) / 2) ** 2 + cos(lat1) * cos(lat2) * (sin((lon2 - lon1) / 2) ** 2 )))
-    t = ceil(d / speed * 60)
-    # Расчёт времени доставки от A в B
-    
+def check_available(lat1, lon1, lat2, lon2):
+    lat0, lon0 = get_queadro_coords()
+    t = eval_time(lat0, lon0, lat1, lon1)[1] + eval_time(lat1, lon1, lat2, lon2)[1]
+    return max_flight_time - t > 2
+
+@app.route('/api/available/check', methods = ['POST'])
+def get_available():
+    requireds = ('sendLat', 'sendLon', 'recvLat', 'recvLon')
+    if request.get_json() is not None:
+        if check_data(request.get_json(), requireds) is True:
+            return {'available': check_available(request.get_json()['sendLat'], request.get_json()['sendLon'], request.get_json()['recvLat'], request.get_json()['recvLon'])}
+        return 'Some data is missing', status.HTTP_400_BAD_REQUEST
+    return 'Some data is missing', status.HTTP_400_BAD_REQUEST
 
 @app.route('/api/order/get', methods = ['GET'])
 def get_active_order():
@@ -58,24 +80,9 @@ def get_active_order():
         return None
     return 'Some params are missing', status.HTTP_400_BAD_REQUEST
 
-def convert_to_radians(degrees):
-    return degrees * (pi / 180)
-
-def eval_time(lat1, lon1, lat2, lon2):
-    lat1, lon1 = convert_to_radians(lat1), convert_to_radians(lon1)
-    lat2, lon2 = convert_to_radians(lat2), convert_to_radians(lon2)
-    # Конвертация в радианы
-
-    d = 2 * earth_r * asin(sqrt(sin((lat2 - lat1) / 2) ** 2 + cos(lat1) * cos(lat2) * (sin((lon2 - lon1) / 2) ** 2 )))
-    t = ceil(d / speed * 60)
-    # Расчёт времени доставки от A в B
-
-    return [d, t]
-
 @app.route('/api/order/create', methods = ['POST'])
 def create_order():
     requireds = ('sender', 'receiver', 'sendLat', 'sendLon', 'recvLat', 'recvLon', 'comment')
-    
     if request.get_json() is not None:
         if check_data(request.get_json(), requireds) is True:
             geo = eval_time(request.get_json()['sendLat'], request.get_json()['sendLon'], request.get_json()['recvLat'], request.get_json()['recvLon'])
@@ -107,3 +114,4 @@ def create_order():
 app.secret_key = os.urandom(24)
 app.run(host = '0.0.0.0', port = '80', debug = True)
 #print(eval_time(56.355642, 37.526208, 56.355147, 37.530657))
+#print(check_available(56.355642, 37.526208, 56.355147, 37.530657))
