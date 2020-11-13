@@ -87,7 +87,7 @@ def create_order():
         if check_data(request.get_json(), requireds) is True:
             geo = eval_time(request.get_json()['sendLat'], request.get_json()['sendLon'], request.get_json()['recvLat'], request.get_json()['recvLon'])
 
-            if len(models.Order.query.filter(models.Order.status != 0).all()) == 0:
+            if len(models.Order.query.filter(models.Order.status != 0).all()) == 0 and check_available(request.get_json()['sendLat'], request.get_json()['sendLon'], request.get_json()['recvLat'], request.get_json()['recvLon']):
             
                 new_order = models.Order(sender = request.get_json()['sender'],
                                          receiver = request.get_json()['receiver'], 
@@ -106,11 +106,10 @@ def create_order():
                 db.session.commit()
 
                 return {}
-            return 'Quadrocoapter is busy', status.HTTP_403_FORBIDDEN
+            return 'Quadrocoapter is busy or ', status.HTTP_403_FORBIDDEN
         return 'Some data is missing', status.HTTP_400_BAD_REQUEST
     return 'Some data is missing', status.HTTP_400_BAD_REQUEST
     
-
 app.secret_key = os.urandom(24)
 app.run(host = '0.0.0.0', port = '80', debug = True)
 #print(eval_time(56.355642, 37.526208, 56.355147, 37.530657))
