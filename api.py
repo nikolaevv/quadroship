@@ -44,7 +44,7 @@ def queryset_to_list(queryset):
     for q in queryset:
         q_dict = q.__dict__
         del q_dict['_sa_instance_state']
-        del q_dict['date_create']
+        #del q_dict['date_create']
         #del q_dict['_sa_instance_state'] 
 
         flat_list.append(q_dict)
