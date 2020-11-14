@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from app import models, app, db
 from flask_api import status
 import os
-from config import speed, max_flight_time
+from config import speed, max_flight_time, power_station_lon, power_station_lat, t_up
 import numpy as np
 import base64
 import datetime
@@ -26,7 +26,7 @@ def eval_time(lat1, lon1, lat2, lon2):
     # Конвертация в радианы
 
     d = 2 * earth_r * asin(sqrt(sin((lat2 - lat1) / 2) ** 2 + cos(lat1) * cos(lat2) * (sin((lon2 - lon1) / 2) ** 2 )))
-    t = ceil(d / speed * 60)
+    t = ceil(d / speed * 60) + t_up
     # Расчёт времени доставки от A в B
 
     return [d, t]
@@ -45,7 +45,6 @@ def queryset_to_list(queryset):
         q_dict = q.__dict__
         del q_dict['_sa_instance_state']
         #del q_dict['date_create']
-        #del q_dict['_sa_instance_state'] 
 
         flat_list.append(q_dict)
     return flat_list
@@ -54,17 +53,17 @@ def get_queadro_coords():
     # Заглушка
     return 56.353263, 37.527939
 
-def check_available(lat1, lon1, lat2, lon2):
+def check_available(lat1, lon1, lat2, lon2, power_level = 100):
     lat0, lon0 = get_queadro_coords()
-    t = eval_time(lat0, lon0, lat1, lon1)[1] + eval_time(lat1, lon1, lat2, lon2)[1]
-    return max_flight_time - t > 2
+    t = eval_time(lat0, lon0, lat1, lon1)[1] + eval_time(lat1, lon1, lat2, lon2)[1] + eval_time(lat2, lon2, power_station_lat, power_station_lon)[1]
+    return (max_flight_time*power_level/100) - t > 2
 
 @app.route('/api/available/check', methods = ['POST'])
 def get_available():
     requireds = ('sendLat', 'sendLon', 'recvLat', 'recvLon')
     if request.get_json() is not None:
         if check_data(request.get_json(), requireds) is True:
-            return {'available': check_available(request.get_json()['sendLat'], request.get_json()['sendLon'], request.get_json()['recvLat'], request.get_json()['recvLon'])}
+            return {'available': check_available(request.get_json()['sendLat'], request.get_json()['sendLon'], request.get_json()['recvLat'], request.get_json()['recvLon'], 100)}
         return 'Some data is missing', status.HTTP_400_BAD_REQUEST
     return 'Some data is missing', status.HTTP_400_BAD_REQUEST
 
@@ -87,7 +86,7 @@ def create_order():
         if check_data(request.get_json(), requireds) is True:
             geo = eval_time(request.get_json()['sendLat'], request.get_json()['sendLon'], request.get_json()['recvLat'], request.get_json()['recvLon'])
 
-            if len(models.Order.query.filter(models.Order.status != 0).all()) == 0 and check_available(request.get_json()['sendLat'], request.get_json()['sendLon'], request.get_json()['recvLat'], request.get_json()['recvLon']):
+            if len(models.Order.query.filter(models.Order.status != 0).all()) == 0 and check_available(request.get_json()['sendLat'], request.get_json()['sendLon'], request.get_json()['recvLat'], request.get_json()['recvLon'], 100):
             
                 new_order = models.Order(sender = request.get_json()['sender'],
                                          receiver = request.get_json()['receiver'], 
@@ -129,4 +128,3 @@ def change_status():
 app.secret_key = os.urandom(24)
 app.run(host = '0.0.0.0', port = '80', debug = True)
 #print(eval_time(56.355642, 37.526208, 56.355147, 37.530657))
-#print(check_available(56.355642, 37.526208, 56.355147, 37.530657))
