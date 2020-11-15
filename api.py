@@ -36,6 +36,7 @@ def eval_time(lat1, lon1, lat2, lon2):
     d = 2 * earth_r * asin(sqrt(sin((lat2 - lat1) / 2) ** 2 + cos(lat1) * cos(lat2) * (sin((lon2 - lon1) / 2) ** 2 )))
     t = ceil(d / speed * 60) + t_up
     # Расчёт времени доставки от A в B
+    print(t, d)
 
     return [d, t]
 
@@ -64,6 +65,7 @@ def get_queadro_coords():
 def check_available(lat1, lon1, lat2, lon2, power_level = 100):
     lat0, lon0 = get_queadro_coords()
     t = eval_time(lat0, lon0, lat1, lon1)[1] + eval_time(lat1, lon1, lat2, lon2)[1] + eval_time(lat2, lon2, power_station_lat, power_station_lon)[1]
+    print(t)
     return (max_flight_time*power_level/100) - t > 2
 
 @app.route('/api/available/check', methods = ['POST'])
@@ -71,6 +73,7 @@ def get_available():
     requireds = ('sendLat', 'sendLon', 'recvLat', 'recvLon')
     if request.get_json() is not None:
         if check_data(request.get_json(), requireds) is True:
+            print
             return {'available': check_available(request.get_json()['sendLat'], request.get_json()['sendLon'], request.get_json()['recvLat'], request.get_json()['recvLon'], 100)}
         return 'Some data is missing', status.HTTP_400_BAD_REQUEST
     return 'Some data is missing', status.HTTP_400_BAD_REQUEST

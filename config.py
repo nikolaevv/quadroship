@@ -4,10 +4,10 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 #UPLOAD_FOLDER = 'photos'
 speed = 40
-max_flight_time = 10
+max_flight_time = 15
 power_station_lon = 37.155946
 power_station_lat = 56.717021
-t_up = 1
+t_up = 2
 
 SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.db')
 SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'db_repository')
