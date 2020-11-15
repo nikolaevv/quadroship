@@ -3,7 +3,5 @@ flask_sqlalchemy
 flask_api
 sqlalchemy
 sqlalchemy-migrate
-keras
-tensorflow
-pandas
+flask-cors
 webcolors==1.3

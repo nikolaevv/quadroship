@@ -14,6 +14,14 @@ import json
 import time
 from math import pi, sin, cos, asin, sqrt, ceil
 
+import ssl
+context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+context.load_cert_chain('server.crt', 'server.key')
+from flask_cors import CORS, cross_origin
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
+
+
 earth_r = 6371
 # Усредённное значение радиуса Земли
 
@@ -51,7 +59,7 @@ def queryset_to_list(queryset):
 
 def get_queadro_coords():
     # Заглушка
-    return 56.353263, 37.527939
+    return 56.717021, 37.155946
 
 def check_available(lat1, lon1, lat2, lon2, power_level = 100):
     lat0, lon0 = get_queadro_coords()
@@ -104,7 +112,7 @@ def create_order():
                 db.session.add(new_order)
                 db.session.commit()
 
-                return {}
+                return json.dumps(new_order)
             return 'Quadrocoapter is busy or way is too long', status.HTTP_403_FORBIDDEN
         return 'Some data is missing', status.HTTP_400_BAD_REQUEST
     return 'Some data is missing', status.HTTP_400_BAD_REQUEST
@@ -126,5 +134,5 @@ def change_status():
     return 'Some params are missing', status.HTTP_400_BAD_REQUEST
 
 app.secret_key = os.urandom(24)
-app.run(host = '0.0.0.0', port = '80', debug = True)
+app.run(host = '0.0.0.0', port = '8000', debug = True, ssl_context=context)
 #print(eval_time(56.355642, 37.526208, 56.355147, 37.530657))
