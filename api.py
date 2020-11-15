@@ -66,7 +66,7 @@ def check_available(lat1, lon1, lat2, lon2, power_level = 100):
     lat0, lon0 = get_queadro_coords()
     t = eval_time(lat0, lon0, lat1, lon1)[1] + eval_time(lat1, lon1, lat2, lon2)[1] + eval_time(lat2, lon2, power_station_lat, power_station_lon)[1]
     print(t)
-    return (max_flight_time*power_level/100) - t > 2
+    return (max_flight_time*power_level/100) - t > 0
 
 @app.route('/api/available/check', methods = ['POST'])
 def get_available():
