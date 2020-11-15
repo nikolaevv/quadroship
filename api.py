@@ -13,6 +13,7 @@ import requests
 import json
 import time
 from math import pi, sin, cos, asin, sqrt, ceil
+#from drone import fly, get_telemetry
 
 import ssl
 context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
@@ -27,6 +28,9 @@ earth_r = 6371
 
 def convert_to_radians(degrees):
     return degrees * (pi / 180)
+
+def perfoorm_order():
+    pass
 
 def eval_time(lat1, lon1, lat2, lon2):
     lat1, lon1 = convert_to_radians(lat1), convert_to_radians(lon1)
@@ -53,14 +57,19 @@ def queryset_to_list(queryset):
     for q in queryset:
         q_dict = q.__dict__
         del q_dict['_sa_instance_state']
-        #del q_dict['date_create']
+        before_time = q_dict['minutes'] - ((datetime.datetime.now() - q_dict['date_create']).total_seconds() // 60)
+        if before_time <= 0:
+            before_time = 1
+        q_dict['time'] = before_time
+        del q_dict['date_create']
 
         flat_list.append(q_dict)
     return flat_list
 
 def get_queadro_coords():
     # Заглушка
-    return 56.717021, 37.155946
+    telemetry = get_telemetry()
+    return telemetry.lat, telemetry.lon
 
 def check_available(lat1, lon1, lat2, lon2, power_level = 100):
     lat0, lon0 = get_queadro_coords()
@@ -115,6 +124,9 @@ def create_order():
                 db.session.add(new_order)
                 db.session.commit()
 
+                fly(request.get_json()['sendLat'], request.get_json()['sendLon'])
+
+
                 return json.dumps(new_order)
             return 'Quadrocoapter is busy or way is too long', status.HTTP_403_FORBIDDEN
         return 'Some data is missing', status.HTTP_400_BAD_REQUEST
@@ -130,6 +142,13 @@ def change_status():
                 order = orders[0]
                 order.status = request.get_json()['status']
                 db.session.commit()
+
+                order_status = request.get_json()['status']
+
+                if order_status == 3:
+                    fly(order.recvLat, order.recvLon)
+                elif order_status == 0:
+                    fly(power_station_lat, power_station_lon)
 
                 return {}
             return 'Order is not found', status.HTTP_400_BAD_REQUEST
